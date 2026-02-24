@@ -1,8 +1,7 @@
 class CreateCaptainTables < ActiveRecord::Migration[7.0]
   def up
-    # Post this migration, the 'vector' extension is mandatory to run the application.
-    # If the extension is not installed, the migration will raise an error.
-    setup_vector_extension
+    return unless vector_available?
+
     create_assistants
     create_documents
     create_assistant_responses
@@ -14,19 +13,16 @@ class CreateCaptainTables < ActiveRecord::Migration[7.0]
     drop_table :captain_documents if table_exists?(:captain_documents)
     drop_table :captain_assistants if table_exists?(:captain_assistants)
     drop_table :article_embeddings if table_exists?(:article_embeddings)
-
-    # We are not disabling the extension here because it might be
-    # used by other tables which are not part of this migration.
   end
 
   private
 
-  def setup_vector_extension
-    begin
-      enable_extension 'vector'
-    rescue => e
-      Rails.logger.warn "pgvector extension not available: #{e.message}"
-    end
+  def vector_available?
+    execute("CREATE EXTENSION IF NOT EXISTS vector")
+    true
+  rescue => e
+    Rails.logger.warn "pgvector not available, skipping Captain AI tables: #{e.message}"
+    false
   end
 
   def create_assistants
@@ -34,10 +30,8 @@ class CreateCaptainTables < ActiveRecord::Migration[7.0]
       t.string :name, null: false
       t.bigint :account_id, null: false
       t.string :description
-
       t.timestamps
     end
-
     add_index :captain_assistants, :account_id
     add_index :captain_assistants, [:account_id, :name], unique: true
   end
@@ -49,10 +43,8 @@ class CreateCaptainTables < ActiveRecord::Migration[7.0]
       t.text :content
       t.bigint :assistant_id, null: false
       t.bigint :account_id, null: false
-
       t.timestamps
     end
-
     add_index :captain_documents, :account_id
     add_index :captain_documents, :assistant_id
     add_index :captain_documents, [:assistant_id, :external_link], unique: true
@@ -66,10 +58,8 @@ class CreateCaptainTables < ActiveRecord::Migration[7.0]
       t.bigint :assistant_id, null: false
       t.bigint :document_id
       t.bigint :account_id, null: false
-
       t.timestamps
     end
-
     add_index :captain_assistant_responses, :account_id
     add_index :captain_assistant_responses, :assistant_id
     add_index :captain_assistant_responses, :document_id
