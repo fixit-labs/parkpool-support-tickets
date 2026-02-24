@@ -1,7 +1,8 @@
 class CreateCaptainTables < ActiveRecord::Migration[7.0]
+  disable_ddl_transaction!
+
   def up
     return unless vector_available?
-
     create_assistants
     create_documents
     create_assistant_responses
