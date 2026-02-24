@@ -22,12 +22,10 @@ class CreateCaptainTables < ActiveRecord::Migration[7.0]
   private
 
   def setup_vector_extension
-    return if extension_enabled?('vector')
-
     begin
       enable_extension 'vector'
-    rescue ActiveRecord::StatementInvalid
-      raise StandardError, "Failed to enable 'vector' extension. Read more at https://chwt.app/v4/migration"
+    rescue => e
+      Rails.logger.warn "pgvector extension not available: #{e.message}"
     end
   end
 
